@@ -14,14 +14,9 @@ import (
 
 type apiConfig struct {
 	fileserverHits atomic.Int32
-<<<<<<< HEAD
-	db             *database.Queries
-	platform       string
-=======
 	db	*database.Queries
 	platform string
 	secret	string
->>>>>>> eae180b (feat(auth): implement HS256 JWT signing and refresh token persistence in Go.)
 }
 
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
@@ -60,12 +55,9 @@ func main() {
 	mux.HandleFunc("GET /admin/metrics", apiCfg.handlerMetrics)
 	mux.HandleFunc("POST /api/chirps", apiCfg.handlerChirps)
 	mux.HandleFunc("POST /api/users", apiCfg.handlerCreateUser)
-<<<<<<< HEAD
 	mux.HandleFunc("GET /api/chirps", apiCfg.handlerGetChirps)
 	mux.HandleFunc("GET /api/chirps/{chirpID}", apiCfg.handlerGetChirp)
-=======
 	mux.HandleFunc("POST /api/login", apiCfg.handlerUserLogin)
->>>>>>> eae180b (feat(auth): implement HS256 JWT signing and refresh token persistence in Go.)
 
 	srv := &http.Server{
 		Addr:    ":" + port,
