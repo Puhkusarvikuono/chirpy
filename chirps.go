@@ -10,6 +10,8 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/puhkusarvikuono/chirpy/internal/database"
+	"github.com/puhkusarvikuono/chirpy/internal/auth"
+	"time"
 )
 
 type Chirp struct {
@@ -22,8 +24,7 @@ type Chirp struct {
 
 func (cfg *apiConfig) handlerChirps(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		Body string    `json:"body"`
-		ID   uuid.UUID `json:"user_id"`
+		Body string `json:"body"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -48,14 +49,39 @@ func (cfg *apiConfig) handlerChirps(w http.ResponseWriter, r *http.Request) {
 
 	cleanMsg := profanityCheck(params.Body, badWords)
 
-	dbChirp, err := cfg.db.CreateChirp(r.Context(), database.CreateChirpParams{
-		Body:   cleanMsg,
-		UserID: params.ID,
+	token, err := auth.GetBearerToken(r.Header)
+	if err != nil {
+		log.Printf("Error finding user token %v\n", err)
+		w.WriteHeader(401)
+		return
+	}
+
+	userID, err := auth.ValidateJWT(token, cfg.secret)
+
+	if err != nil {
+		log.Printf("Not authorized: %v\n", err)
+		w.WriteHeader(401)
+		return
+	}
+
+	
+	chirp, err := cfg.db.CreateChirp(r.Context(), database.CreateChirpParams{
+		Body: cleanMsg,
+		UserID: userID,
 	})
+
 	if err != nil {
 		log.Printf("Error creating user: %s", err)
 		w.WriteHeader(500)
 		return
+	}
+	
+	dbChirp := Chirp{
+		ID: chirp.ID,
+		CreatedAt: chirp.CreatedAt,
+		UpdatedAt: chirp.UpdatedAt,
+		Body: chirp.Body,
+		UserID: userID,
 	}
 
 	chirp := databaseChirpToChirp(dbChirp)
