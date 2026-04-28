@@ -5,9 +5,7 @@ import (
 	"log"
 	"net/http"
 	"strings"
-	"time"
 	"unicode/utf8"
-
 	"github.com/google/uuid"
 	"github.com/puhkusarvikuono/chirpy/internal/database"
 	"github.com/puhkusarvikuono/chirpy/internal/auth"
@@ -65,7 +63,7 @@ func (cfg *apiConfig) handlerChirps(w http.ResponseWriter, r *http.Request) {
 	}
 
 	
-	chirp, err := cfg.db.CreateChirp(r.Context(), database.CreateChirpParams{
+	dbChirp, err := cfg.db.CreateChirp(r.Context(), database.CreateChirpParams{
 		Body: cleanMsg,
 		UserID: userID,
 	})
@@ -74,14 +72,6 @@ func (cfg *apiConfig) handlerChirps(w http.ResponseWriter, r *http.Request) {
 		log.Printf("Error creating user: %s", err)
 		w.WriteHeader(500)
 		return
-	}
-	
-	dbChirp := Chirp{
-		ID: chirp.ID,
-		CreatedAt: chirp.CreatedAt,
-		UpdatedAt: chirp.UpdatedAt,
-		Body: chirp.Body,
-		UserID: userID,
 	}
 
 	chirp := databaseChirpToChirp(dbChirp)
