@@ -5,14 +5,16 @@ import (
 	"log"
 	"net/http"
 	"time"
+
 	"github.com/puhkusarvikuono/chirpy/internal/auth"
+	"github.com/puhkusarvikuono/chirpy/internal/database"
 )
 
 func (cfg *apiConfig) handlerUserLogin(w http.ResponseWriter, r *http.Request) {
 	type parameters struct {
-		Password string `json:"password"`
-		Email string `json:"email"`
-		ExpiresInSeconds	int	`json:"expires_in_seconds"`
+		Password         string `json:"password"`
+		Email            string `json:"email"`
+		ExpiresInSeconds int    `json:"expires_in_seconds"`
 	}
 
 	decoder := json.NewDecoder(r.Body)
@@ -24,12 +26,13 @@ func (cfg *apiConfig) handlerUserLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	if params.ExpiresInSeconds == 0 {
+	if params.ExpiresInSeconds == 0 || params.ExpiresInSeconds > 3600 {
 		params.ExpiresInSeconds = 3600
 	}
 
-	user, err := cfg.db.GetUser(r.Context(), params.Email)
+	expiresAt := 3600 * time.Second
 
+	user, err := cfg.db.GetUser(r.Context(), params.Email)
 	if err != nil {
 		log.Printf("Incorrect email")
 		w.WriteHeader(401)
@@ -45,32 +48,37 @@ func (cfg *apiConfig) handlerUserLogin(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(401)
 		return
 	}
-	
-	ExpiresAt := time.Duration(params.ExpiresInSeconds) * time.Second
 
-	if err != nil {
-		log.Printf("Invalid expires at %v\n", err)
-		w.WriteHeader(500)
-		return
-	}
-	token, err := auth.MakeJWT(user.ID, cfg.secret, ExpiresAt)
-
+	token, err := auth.MakeJWT(user.ID, cfg.secret, expiresAt)
 	if err != nil {
 		log.Printf("Error creating token %v\n", err)
 		w.WriteHeader(500)
 		return
 	}
-	
+
+	refreshTokenKey := auth.MakeRefreshToken()
+
+	refreshExpiresAt := time.Now().Add(60 * 24 * time.Hour)
+
+	refreshToken, err := cfg.db.CreateRefreshToken(r.Context(), database.CreateRefreshTokenParams{
+		Token:     refreshTokenKey,
+		UserID:    user.ID,
+		ExpiresAt: refreshExpiresAt,
+	})
+	if err != nil {
+		log.Printf("Error creating refresh token: %v\n", err)
+		w.WriteHeader(500)
+		return
+	}
+
 	dbUser := User{
-		ID: user.ID,
-		CreatedAt: user.CreatedAt,
-		UpdatedAt: user.UpdatedAt,
-		Email: user.Email,
-		Token: token,
+		ID:           user.ID,
+		CreatedAt:    user.CreatedAt,
+		UpdatedAt:    user.UpdatedAt,
+		Email:        user.Email,
+		Token:        token,
+		RefreshToken: refreshToken.Token,
 	}
 
 	respondWithJSON(w, 200, dbUser)
-
 }
-
-

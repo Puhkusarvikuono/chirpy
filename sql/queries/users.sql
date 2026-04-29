@@ -12,10 +12,13 @@ RETURNING *;
 -- name: Reset :exec
 DELETE FROM users;
 
-<<<<<<< HEAD
-
-=======
 -- name: GetUser :one
 SELECT * FROM users
 WHERE email = $1 limit 1;
->>>>>>> eae180b (feat(auth): implement HS256 JWT signing and refresh token persistence in Go.)
+
+-- name: UpdateUser :exec
+UPDATE users
+  SET email = $2,
+  hashed_password = $3,
+  updated_at = NOW()
+WHERE id = $1;
