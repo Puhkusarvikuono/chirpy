@@ -1,13 +1,4 @@
-# Binaries
-bin/
-dist/
-*.exe
-*.out
-
-# Environment files
+out
 .env
-
-# OS files
-.DS_Store
-
+learn-http-servers
 
