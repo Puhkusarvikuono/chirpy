@@ -1,6 +1,6 @@
 ## Chirpy
 
-Chirpy is a custom-built social media backend API written in Go. This project serves as a robust exercise in building scalable HTTP servers, handling persistent data, and implementing secure user authentication.
+This is a guided Boot.dev project named Chirpy. Chirpy is a custom-built social media backend API written in Go. This project serves as a robust exercise in building scalable HTTP servers, handling persistent data, and implementing secure user authentication.
 
 ## Features
 
