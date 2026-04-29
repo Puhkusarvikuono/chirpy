@@ -22,3 +22,8 @@ UPDATE users
   hashed_password = $3,
   updated_at = NOW()
 WHERE id = $1;
+
+-- name: UpgradeRedUser :exec
+UPDATE users
+  SET is_chirpy_red = true
+WHERE id = $1;

@@ -17,6 +17,7 @@ type apiConfig struct {
 	db             *database.Queries
 	platform       string
 	secret         string
+	polkaKey       string
 }
 
 func (cfg *apiConfig) middlewareMetricsInc(next http.Handler) http.Handler {
@@ -34,6 +35,7 @@ func main() {
 	dbURL := os.Getenv("DB_URL")
 	platform := os.Getenv("PLATFORM")
 	secret := os.Getenv("SECRET")
+	polkaKey := os.Getenv("POLKA_KEY")
 	db, err := sql.Open("postgres", dbURL)
 	dbQueries := database.New(db)
 
@@ -46,6 +48,7 @@ func main() {
 		db:       dbQueries,
 		platform: platform,
 		secret:   secret,
+		polkaKey: polkaKey,
 	}
 	mux := http.NewServeMux()
 	mux.Handle("/app/", apiCfg.middlewareMetricsInc(http.StripPrefix("/app/", http.FileServer(http.Dir(".")))))
@@ -62,6 +65,7 @@ func main() {
 	mux.HandleFunc("POST /api/revoke", apiCfg.handlerRevoke)
 	mux.HandleFunc("PUT /api/users", apiCfg.handlerUpdateUser)
 	mux.HandleFunc("DELETE /api/chirps/{chirpID}", apiCfg.handlerDeleteChirp)
+	mux.HandleFunc("POST /api/polka/webhooks", apiCfg.handlerIsChirpyRed)
 
 	srv := &http.Server{
 		Addr:    ":" + port,

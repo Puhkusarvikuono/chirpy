@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"log"
 	"net/http"
+	"sort"
 	"strings"
 	"time"
 	"unicode/utf8"
@@ -92,17 +93,40 @@ func profanityCheck(msg string, badWords map[string]struct{}) string {
 }
 
 func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
-	dbChirps, err := cfg.db.GetChirps(r.Context())
+	authorID := r.URL.Query().Get("author_id")
+	sortOrder := r.URL.Query().Get("sort")
+
+	var (
+		dbChirps []database.Chirp
+		err      error
+	)
+
+	if authorID != "" {
+		targetID, parseErr := uuid.Parse(authorID)
+		if parseErr != nil {
+			log.Printf("Error parsing chirp id: %s", err)
+			w.WriteHeader(500)
+			return
+		}
+		dbChirps, err = cfg.db.GetChirpsByID(r.Context(), targetID)
+	} else {
+		dbChirps, err = cfg.db.GetChirps(r.Context())
+	}
+
 	if err != nil {
-		log.Printf("Error getting chirps: %s", err)
+		log.Printf("Error getting chirps: %v\n", err)
 		w.WriteHeader(500)
 		return
 	}
 
-	chirps := []Chirp{}
+	chirps := make([]Chirp, 0, len(dbChirps))
+
+	if sortOrder == "desc" {
+		sort.Slice(dbChirps, func(i, j int) bool { return dbChirps[i].CreatedAt.After(dbChirps[j].CreatedAt) })
+	}
+
 	for _, dbChirp := range dbChirps {
-		chirp := databaseChirpToChirp(dbChirp)
-		chirps = append(chirps, chirp)
+		chirps = append(chirps, databaseChirpToChirp(dbChirp))
 	}
 
 	respondWithJSON(w, 200, chirps)
